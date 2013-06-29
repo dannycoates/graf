@@ -1,27 +1,32 @@
 module.exports = function (inherits, EventEmitter) {
 
-	function Node(name, fn, input, graph) {
+	function Node(name, fn, input, after, graph) {
 		EventEmitter.call(this)
 		this.name = name
 		this.fn = fn
 		this.graph = graph
 		this.onData = null
 		this.args = [] // fn argument values
-		this.argNodes = {} // predecessor node names to argument indices foo:[0,1]
-		this.argsReceived = 0 // number of arguments that have received a value
+		this.nodes = {} // node names to argument indices foo:[0,1]
 
-		// poplulate the keys for this.argNodes
+		// poplulate the keys for this.nodes
+		var n
 		for (var i = 0; i < input.length; i++) {
-			var n = input[i]
-			this.argNodes[n] = this.argNodes[n] || []
-			this.argNodes[n].push(i)
+			n = input[i]
+			this.nodes[n] = this.nodes[n] || []
+			this.nodes[n].push(i)
 		}
+		for (var i = 0; i < after.length; i++) {
+			n = after[i]
+			this.nodes[n] = this.nodes[n] || []
+		}
+		this.remaining = Object.keys(this.nodes).length
 		this.args[input.length] = callback.bind(this)
 	}
 	inherits(Node, EventEmitter)
 
 	Node.prototype.connect = function () {
-		var names = Object.keys(this.argNodes)
+		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var node = this.graph.node(names[i])
 			if (node) {
@@ -35,7 +40,7 @@ module.exports = function (inherits, EventEmitter) {
 	}
 
 	Node.prototype.disconnect = function () {
-		var names = Object.keys(this.argNodes)
+		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var node = this.graph.node(names[i])
 			if (node) {
@@ -45,12 +50,11 @@ module.exports = function (inherits, EventEmitter) {
 	}
 
 	Node.prototype.execute = function (arg, data) {
-		var indices = this.argNodes[arg]
+		var indices = this.nodes[arg]
 		for (var i = 0; i < indices.length; i++) {
-			this.argsReceived++
 			this.args[indices[i]] = data
 		}
-		if (this.argsReceived === this.args.length - 1) {
+		if (!(--this.remaining)) {
 			this.run(this.args)
 		}
 	}

@@ -21,7 +21,7 @@ module.exports = function (Node) {
 		else if (spec.nodes) {
 			fn = makeGraph(spec)
 		}
-		this.nodes[name] = new Node(name, fn, spec.input || [], this)
+		this.nodes[name] = new Node(name, fn, spec.input || [], spec.after || [], this)
 		return this
 	}
 
