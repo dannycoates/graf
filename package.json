@@ -3,12 +3,19 @@
   "version": "0.0.1",
   "description": "some kind of graph thingy",
   "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tap ./test"
   },
-  "dependencies": {
+  "devDependencies": {
+    "tap": "0.4.3"
   },
-  "repository": "",
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dannycoates/graf.git"
+  },
+  "author": "Danny Coates",
   "license": "BSD"
 }
