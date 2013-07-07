@@ -1,11 +1,13 @@
-module.exports = function (Domain, Node) {
+module.exports = function (crypto, Domain, Node) {
 	function noop() {}
 	function identity(x, cb) { cb(null, x) }
 
-	function Graph(error) {
+	function Graph(spec) {
+		this.id = crypto.pseudoRandomBytes(4).toString('hex')
 		this.nodes = {}
+		this.post = spec.post
 		this.cb = noop
-		this.error = error || noop
+		this.error = spec.error || noop
 		this.onError = done.bind(this)
 		this.onData = done.bind(this, null)
 		this.domain = Domain.create()
@@ -24,14 +26,7 @@ module.exports = function (Domain, Node) {
 		else if (spec.nodes) {
 			fn = makeGraph(spec)
 		}
-		var n = new Node(
-			name,
-			fn,
-			spec.input || [],
-			spec.after || [],
-			this
-		)
-		this.nodes[name] = n
+		this.nodes[name] = new Node(name, fn, this, spec)
 		return this
 	}
 
@@ -62,6 +57,9 @@ module.exports = function (Domain, Node) {
 			this.error(err)
 			this.disconnect()
 		}
+		if (this.post) {
+			this.post(err, result)
+		}
 		this.cb(err, result)
 		this.cb = noop
 	}
@@ -87,7 +85,7 @@ module.exports = function (Domain, Node) {
 	// `spec` is bound, therefore the arguments at call
 	// time are used as the values for `spec.input`.
 	function start(spec) {
-		var graph = new Graph(spec.error)
+		var graph = new Graph(spec)
 
 		// create nodes for the input
 		for (var i = 0; i < spec.input.length; i++) {
@@ -112,6 +110,9 @@ module.exports = function (Domain, Node) {
 			}
 		}
 
+		if (spec.pre) {
+			spec.pre.call(graph, Array.prototype.slice.call(arguments, 1, argLength + 1))
+		}
 		// wire up the events
 		graph.connect()
 

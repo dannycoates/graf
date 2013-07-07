@@ -1,4 +1,5 @@
 var test = require('tap').test
+var debug = require('../debug')
 var graf = require('..')
 
 var spec = {
@@ -34,7 +35,7 @@ test(
 	"with 'after' red runs after blue",
 	function (t) {
 		spec.nodes.red.after = ['blue']
-		graf(spec)([], function (err, r) {
+		graf(debug(console, spec))([], function (err, r) {
 			t.equal(r[0], 'blue')
 			t.end()
 		})
@@ -45,7 +46,7 @@ test(
 	"without 'after' red runs first",
 	function (t) {
 		spec.nodes.red.after = null
-		graf(spec)([], function (err, r) {
+		graf(debug(console, spec))([], function (err, r) {
 			t.equal(r[0], 'red')
 			t.end()
 		})

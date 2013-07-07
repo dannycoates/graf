@@ -1,6 +1,6 @@
 module.exports = function (inherits, EventEmitter) {
 
-	function Node(name, fn, input, after, graph) {
+	function Node(name, fn, graph, options) {
 		EventEmitter.call(this)
 		this.name = name
 		this.fn = fn
@@ -8,20 +8,24 @@ module.exports = function (inherits, EventEmitter) {
 		this.onData = null
 		this.args = [] // fn argument values
 		this.nodes = {} // node names to argument indices foo:[0,1]
+		this.pre = options.pre
+		this.post = options.post
+		options.input = options.input || []
+		options.after = options.after || []
 
 		// poplulate the keys for this.nodes
 		var n
-		for (var i = 0; i < input.length; i++) {
-			n = input[i]
+		for (var i = 0; i < options.input.length; i++) {
+			n = options.input[i]
 			this.nodes[n] = this.nodes[n] || []
 			this.nodes[n].push(i)
 		}
-		for (var i = 0; i < after.length; i++) {
-			n = after[i]
+		for (var i = 0; i < options.after.length; i++) {
+			n = options.after[i]
 			this.nodes[n] = this.nodes[n] || []
 		}
 		this.remaining = Object.keys(this.nodes).length
-		this.args[input.length] = callback.bind(this)
+		this.args[options.input.length] = callback.bind(this)
 	}
 	inherits(Node, EventEmitter)
 
@@ -67,10 +71,16 @@ module.exports = function (inherits, EventEmitter) {
 	}
 
 	Node.prototype.run = function (input) {
+		if (this.pre) {
+			this.pre(input.slice(0, input.length - 1))
+		}
 		this.fn.apply(null, input)
 	}
 
 	function callback(err, data) {
+		if (this.post) {
+			this.post(err, data)
+		}
 		if (err) return this.emit('error', err)
 		this.emit('data', data)
 	}
