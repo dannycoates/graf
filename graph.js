@@ -1,4 +1,4 @@
-module.exports = function (Node) {
+module.exports = function (Domain, Node) {
 	function noop() {}
 	function identity(x, cb) { cb(null, x) }
 
@@ -8,12 +8,15 @@ module.exports = function (Node) {
 		this.error = error || noop
 		this.onError = done.bind(this)
 		this.onData = done.bind(this, null)
+		this.domain = Domain.create()
+		this.domain.on('error', this.onError)
 	}
 
+	// creates a new Node and adds it to the graph
 	Graph.prototype.add = function (name, spec) {
 		var fn = null
 		if (spec.fn) {
-			fn = spec.fn
+			fn = this.domain.bind(spec.fn)
 		}
 		else if (spec.syncFn) {
 			fn = wrap(spec.syncFn)
@@ -21,7 +24,14 @@ module.exports = function (Node) {
 		else if (spec.nodes) {
 			fn = makeGraph(spec)
 		}
-		this.nodes[name] = new Node(name, fn, spec.input || [], spec.after || [], this)
+		var n = new Node(
+			name,
+			fn,
+			spec.input || [],
+			spec.after || [],
+			this
+		)
+		this.nodes[name] = n
 		return this
 	}
 
@@ -29,8 +39,8 @@ module.exports = function (Node) {
 		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var n = this.nodes[names[i]]
-			n.connect()
 			n.once('error', this.onError)
+			n.connect()
 		}
 	}
 
@@ -38,8 +48,8 @@ module.exports = function (Node) {
 		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var n = this.nodes[names[i]]
-			n.disconnect()
 			n.removeListener('error', this.onError)
+			n.disconnect()
 		}
 	}
 
@@ -56,6 +66,7 @@ module.exports = function (Node) {
 		this.cb = noop
 	}
 
+	// wraps a synchronous function appending a callback argument
 	function wrap(fn) {
 		return function wrapper() {
 			var cb = arguments[arguments.length - 1]
@@ -72,19 +83,24 @@ module.exports = function (Node) {
 		}
 	}
 
+	// This is the function returned by `makeGraph`.
+	// `spec` is bound, therefore the arguments at call
+	// time are used as the values for `spec.input`.
 	function start(spec) {
 		var graph = new Graph(spec.error)
 
+		// create nodes for the input
 		for (var i = 0; i < spec.input.length; i++) {
 			graph.add(spec.input[i], { fn: identity, input: [i] })
 		}
+		// create nodes
 		var names = Object.keys(spec.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var n = names[i]
 			graph.add(n, spec.nodes[n])
 		}
-		graph.connect()
 
+		// connect the `cb` argument to the `spec.output` node
 		var cb = arguments[arguments.length - 1]
 		var argLength = arguments.length - 1
 		if (typeof cb === 'function') {
@@ -96,11 +112,22 @@ module.exports = function (Node) {
 			}
 		}
 
+		// wire up the events
+		graph.connect()
+
+		// send arguments to the input nodes to kick off execution
 		for (var i = 0; i < argLength; i++) {
 			graph.node(spec.input[i]).execute(i, arguments[i + 1])
 		}
 	}
 
+	// Construct a graph function from the given spec.
+	// The arguments of the returned function will
+	// correspond to `spec.input` followed by
+	// a `callback` function expecting a signature
+	// of `(err, result)`.
+	// Each call to the graph function constructs a new
+	// Graph and begins execution.
 	function makeGraph(spec) {
 		spec.input = spec.input || []
 		spec.nodes = spec.nodes || {}

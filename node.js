@@ -25,6 +25,8 @@ module.exports = function (inherits, EventEmitter) {
 	}
 	inherits(Node, EventEmitter)
 
+	// Wire up the input for this node to
+	// the corresponding nodes in the graph
 	Node.prototype.connect = function () {
 		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
@@ -35,20 +37,25 @@ module.exports = function (inherits, EventEmitter) {
 			}
 		}
 		if (names.length === 0) {
-			this.run(this.args) // functions with no arguments can run right now
+			// functions with no arguments can run right now
+			this.run(this.args)
 		}
 	}
 
+	// Remove all listeners to input nodes
 	Node.prototype.disconnect = function () {
 		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var node = this.graph.node(names[i])
-			if (node) {
+			if (node && this.onData) {
 				node.removeListener('data', this.onData)
 			}
 		}
 	}
 
+	// Accept an input value from another node
+	// and `run` if all inputs have been received.
+	// Called by the input node's 'data' event
 	Node.prototype.execute = function (arg, data) {
 		var indices = this.nodes[arg]
 		for (var i = 0; i < indices.length; i++) {

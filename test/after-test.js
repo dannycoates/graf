@@ -1,5 +1,5 @@
 var test = require('tap').test
-var graf = require('../')
+var graf = require('..')
 
 var spec = {
 	input: ['x'],
