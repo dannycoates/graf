@@ -1,6 +1,6 @@
 {
   "name": "graf",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "some kind of graph thingy",
   "main": "index.js",
   "directories": {

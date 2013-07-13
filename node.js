@@ -40,10 +40,7 @@ module.exports = function (inherits, EventEmitter) {
 				node.once('data', this.onData)
 			}
 		}
-		if (names.length === 0) {
-			// functions with no arguments can run right now
-			this.run(this.args)
-		}
+		return (names.length === 0)
 	}
 
 	// Remove all listeners to input nodes
@@ -66,15 +63,15 @@ module.exports = function (inherits, EventEmitter) {
 			this.args[indices[i]] = data
 		}
 		if (!(--this.remaining)) {
-			this.run(this.args)
+			this.run()
 		}
 	}
 
-	Node.prototype.run = function (input) {
+	Node.prototype.run = function () {
 		if (this.pre) {
-			this.pre(input.slice(0, input.length - 1))
+			this.pre(this.args.slice(0, this.args.length - 1))
 		}
-		this.fn.apply(null, input)
+		this.fn.apply(null, this.args)
 	}
 
 	function callback(err, data) {

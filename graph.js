@@ -31,11 +31,15 @@ module.exports = function (crypto, Domain, Node) {
 	}
 
 	Graph.prototype.connect = function () {
+		var ready = []
 		var names = Object.keys(this.nodes)
 		for (var i = 0; i < names.length; i++) {
 			var n = this.nodes[names[i]]
 			n.once('error', this.onError)
-			n.connect()
+			if (n.connect()) ready.push(n)
+		}
+		for (i = 0; i < ready.length; i++) {
+			ready[i].run()
 		}
 	}
 
