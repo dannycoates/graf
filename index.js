@@ -1,6 +1,8 @@
 var crypto = require('crypto')
-var inherits = require('util').inherits
-var EventEmitter = require('events').EventEmitter
+var inherits = require('util')
+  .inherits
+var EventEmitter = require('events')
+  .EventEmitter
 var Domain = require('domain')
 var Node = require('./node')(inherits, EventEmitter)
 
